@@ -354,7 +354,8 @@
                 const ws = XLSX.utils.json_to_sheet(data);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
-                XLSX.writeFile(wb, `inventario_${new Date().toISOString().slice(0,10)}.xlsx`);
+                XLSX.writeFile
+                (wb, `inventario_${new Date().toISOString().slice(0,10)}.xlsx`);
             })
             .catch(() => alert('❌ Error al exportar'));
     }
