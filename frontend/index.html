@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Inventario</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Librería para exportar a Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<!-- PANTALLA DE LOGIN -->
+<div id="loginScreen" class="container mt-5 text-center">
+    <div class="card mx-auto" style="max-width: 400px;">
+        <div class="card-body">
+            <h3 class="card-title">🔐 Iniciar Sesión</h3>
+            <form id="loginForm">
+                <div class="mb-3">
+                    <input type="email" id="email" class="form-control" placeholder="Correo electrónico" required>
+                </div>
+                <div class="mb-3">
+                    <input type="password" id="password" class="form-control" placeholder="Contraseña" required>
+                </div>
+                <button type="submit" class="btn btn-success w-100">Ingresar</button>
+                <button type="button" onclick="mostrarRegistro()" class="btn btn-link mt-2">¿No tienes cuenta? Regístrate</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- PANTALLA DE REGISTRO -->
+<div id="registerScreen" class="container mt-5 text-center" style="display:none">
+    <div class="card mx-auto" style="max-width: 400px;">
+        <div class="card-body">
+            <h3 class="card-title">📝 Registrar Usuario</h3>
+            <form id="registerForm">
+                <div class="mb-3">
+                    <input type="text" id="regNombre" class="form-control" placeholder="Nombre completo" required>
+                </div>
+                <div class="mb-3">
+                    <input type="email" id="regEmail" class="form-control" placeholder="Correo electrónico" required>
+                </div>
+                <div class="mb-3">
+                    <input type="password" id="regPassword" class="form-control" placeholder="Contraseña" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Registrar</button>
+                <button type="button" onclick="mostrarLogin()" class="btn btn-link mt-2">¿Ya tienes cuenta? Inicia sesión</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- PANTALLA PRINCIPAL: INVENTARIO -->
+<div id="inventarioScreen" style="display:none">
+    <div class="container mt-4">
+        <nav class="navbar navbar-light bg-white shadow-sm mb-4">
+            <div class="container-fluid">
+                <h4 class="navbar-brand mb-0">📦 Sistema de Inventario</h4>
+                <div>
+                    <span id="usuarioNombre" class="me-3"></span>
+                    <a href="movimientos.html" class="btn btn-outline-info btn-sm me-2">📊 Historial</a>
+                    <button onclick="cerrarSesion()" class="btn btn-outline-danger btn-sm">Cerrar sesión</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Botones de exportación -->
+        <div class="mb-3">
+            <button onclick="exportarExcel()" class="btn btn-success">📤 Exportar a Excel</button>
+        </div>
+
+        <!-- Formulario para agregar producto -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5>➕ Agregar Producto</h5>
+                <form id="formProducto">
+                    <input type="hidden" id="id">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Nombre</label>
+                            <input type="text" id="nombre" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Código</label>
+                            <input type="text" id="codigo" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Categoría</label>
+                            <input type="text" id="categoria" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Precio ($)</label>
+                            <input type="number" id="precio" class="form-control" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Descripción</label>
+                        <input type="text" id="descripcion" class="form-control">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Stock</label>
+                            <input type="number" id="stock" class="form-control" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" id="btnCancelar" class="btn btn-secondary" style="display:none">Cancelar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tabla de productos -->
+        <div class="card">
+            <div class="card-body">
+                <h5>📋 Lista de Productos</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Código</th>
+                                <th>Categoría</th>
+                                <th>Stock</th>
+                                <th>Precio</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaProductos">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const loginScreen = document.getElementById('loginScreen');
+    const registerScreen = document.getElementById('registerScreen');
+    const inventarioScreen = document.getElementById('inventarioScreen');
+    const usuarioNombre = document.getElementById('usuarioNombre');
+
+    function mostrarRegistro() {
+        loginScreen.style.display = 'none';
+        registerScreen.style.display = 'block';
+    }
+
+    function mostrarLogin() {
+        registerScreen.style.display = 'none';
+        loginScreen.style.display = 'block';
+    }
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            nombre: document.getElementById('regNombre').value,
+            email: document.getElementById('regEmail').value,
+            password: document.getElementById('regPassword').value
+        };
+
+        try {
+            const res = await fetch('http://localhost:5000/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                alert('✅ Usuario registrado exitosamente');
+                document.getElementById('registerForm').reset();
+                mostrarLogin();
+            } else {
+                const error = await res.json();
+                alert('❌ Error: ' + error.msg);
+            }
+        } catch (err) {
+            alert('❌ Error de conexión con el servidor');
+        }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            const res = await fetch('http://localhost:5000/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                localStorage.setItem('usuario', JSON.stringify(data.usuario));
+                loginScreen.style.display = 'none';
+                registerScreen.style.display = 'none';
+                inventarioScreen.style.display = 'block';
+                usuarioNombre.textContent = `Hola, ${data.usuario.nombre}`;
+                cargarProductos();
+            } else {
+                alert('❌ ' + data.msg);
+            }
+        } catch (err) {
+            alert('❌ Error de conexión con el servidor');
+        }
+    });
+
+    function cerrarSesion() {
+        if (confirm('¿Cerrar sesión?')) {
+            localStorage.removeItem('usuario');
+            inventarioScreen.style.display = 'none';
+            loginScreen.style.display = 'block';
+            document.getElementById('loginForm').reset();
+        }
+    }
+
+    window.onload = () => {
+        const usuario = localStorage.getItem('usuario');
+        if (usuario) {
+            const user = JSON.parse(usuario);
+            loginScreen.style.display = 'none';
+            registerScreen.style.display = 'none';
+            inventarioScreen.style.display = 'block';
+            usuarioNombre.textContent = `Hola, ${user.nombre}`;
+            cargarProductos();
+        } else {
+            inventarioScreen.style.display = 'none';
+            registerScreen.style.display = 'none';
+        }
+    };
+
+    const form = document.getElementById('formProducto');
+    const lista = document.getElementById('listaProductos');
+    const btnCancelar = document.getElementById('btnCancelar');
+
+    function cargarProductos() {
+        fetch('http://localhost:5000/productos')
+            .then(res => res.json())
+            .then(data => {
+                lista.innerHTML = '';
+                data.forEach(prod => {
+                    lista.innerHTML += `
+                        <tr>
+                            <td>${prod.nombre || ''}</td>
+                            <td>${prod.codigo || ''}</td>
+                            <td>${prod.categoria || 'Sin categoría'}</td>
+                            <td>${prod.stock || 0}</td>
+                            <td>$${(parseFloat(prod.precio) || 0).toFixed(2)}</td>
+                            <td>
+                                <button class="btn btn-warning btn-sm" onclick="editar(${prod.id})">Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="eliminar(${prod.id})">Eliminar</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            })
+            .catch(err => {
+                console.error('Error al cargar productos:', err);
+                alert('❌ Error al cargar productos');
+            });
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('id').value;
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/productos/${id}` : '/productos';
+
+        const producto = {
+            nombre: document.getElementById('nombre').value,
+            descripcion: document.getElementById('descripcion').value || '',
+            categoria: document.getElementById('categoria').value || '',
+            precio: document.getElementById('precio').value,
+            stock: document.getElementById('stock').value,
+            codigo: document.getElementById('codigo').value
+        };
+
+        try {
+            const res = await fetch('http://localhost:5000' + url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(producto)
+            });
+
+            if (res.ok) {
+                form.reset();
+                document.getElementById('id').value = '';
+                btnCancelar.style.display = 'none';
+                cargarProductos();
+            } else {
+                const error = await res.json();
+                alert('❌ Error: ' + error.msg);
+            }
+        } catch (err) {
+            alert('❌ Error de conexión');
+        }
+    });
+
+    // ✅ FUNCIÓN EDITAR CORREGIDA
+    window.editar = async function(id) {
+        try {
+            const res = await fetch(`http://localhost:5000/productos/${id}`);
+            if (!res.ok) throw new Error('No se pudo cargar el producto');
+            
+            const prod = await res.json();
+            
+            document.getElementById('id').value = prod.id;
+            document.getElementById('nombre').value = prod.nombre || '';
+            document.getElementById('descripcion').value = prod.descripcion || '';
+            document.getElementById('categoria').value = prod.categoria || '';
+            document.getElementById('precio').value = prod.precio || '';
+            document.getElementById('stock').value = prod.stock || '';
+            document.getElementById('codigo').value = prod.codigo || '';
+            btnCancelar.style.display = 'inline-block';
+        } catch (err) {
+            console.error('Error al cargar producto:', err);
+            alert('❌ No se pudo cargar el producto para editar');
+        }
+    };
+
+    btnCancelar.addEventListener('click', () => {
+        form.reset();
+        document.getElementById('id').value = '';
+        btnCancelar.style.display = 'none';
+    });
+
+    window.eliminar = function(id) {
+        if (confirm('¿Eliminar este producto? Esta acción no se puede deshacer.')) {
+            fetch(`http://localhost:5000/productos/${id}`, {
+                method: 'DELETE'
+            })
+            .then(() => cargarProductos())
+            .catch(() => alert('❌ Error al eliminar'));
+        }
+    };
+
+    function exportarExcel() {
+        fetch('http://localhost:5000/productos')
+            .then(res => res.json())
+            .then(productos => {
+                const data = productos.map(p => ({
+                    'ID': p.id,
+                    'Nombre': p.nombre || '',
+                    'Código': p.codigo || '',
+                    'Categoría': p.categoria || 'N/A',
+                    'Precio': (parseFloat(p.precio) || 0).toFixed(2),
+                    'Stock': p.stock || 0,
+                    'Descripción': p.descripcion || 'N/A'
+                }));
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+                XLSX.writeFile(wb, `inventario_${new Date().toISOString().slice(0,10)}.xlsx`);
+            })
+            .catch(() => alert('❌ Error al exportar'));
+    }
+</script>
+</body>
+</html>
